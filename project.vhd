@@ -1,59 +1,48 @@
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.std_logic_unsigned.all;
 use ieee.numeric_std.all;
 
-entity project is
-    port( 
-        x, y  : in std_logic;
-        m     : in unsigned(7 downto 0);
-        maxCapacity : out std_logic;
-        rest  : in std_logic;
-        clk   : in std_logic
-    );
-end project;
+entity monitor is
+port(
+clk : in std_logic;
+reset : in std_logic;
+x,y : in std_logic;
+max_occupancy : in unsigned(5 downto 0);
+r: out unsigned(5 downto 0);
+z : out std_logic
+);
+end monitor;
 
-architecture project_arch of project is
-    signal qX, qY : std_logic;
-    signal occupancyCount : unsigned(7 downto 0) := (others => '0');
-    signal maxCapacityT : std_logic := '0';
+architecture arch of monitor is
 
-    -- Flip-Flop Component for Synchronization
-    component flipflop
-        port( 
-            clk : in std_logic;
-            d   : in std_logic;
-            q   : out std_logic
-        );
-    end component;
 
+signal sel: std_logic_vector(1 downto 0);
+signal r_reg: INTEGER range 0 to 63:= 0;
+signal r_next:INTEGER range 0 to 63:= 0;
 begin
 
--- D Flip-Flops to Synchronize Inputs
-flipflopX : flipflop port map(clk => clk, d => x, q => qX);
-flipflopY : flipflop port map(clk => clk, d => y, q => qY);
-
--- Process to Handle Occupancy Count and Max Capacity
-process(clk)
-begin
-    if rising_edge(clk) then
-        if rest = '1' then
-            occupancyCount <= (others => '0'); -- Reset occupancy count
-            maxCapacityT <= '0'; -- Ensure reset removes max capacity restriction
-        elsif (qX = '1' and occupancyCount < m) then
-            occupancyCount <= occupancyCount + 1; -- Increment if below max
-        elsif (qY = '1' and occupancyCount > 0) then
-            occupancyCount <= occupancyCount - 1; -- Decrement if above 0
-        end if;
-
-        -- Update max capacity status
-        if occupancyCount = m then
-            maxCapacityT <= '1'; -- Room is full
-        elsif occupancyCount < m then
-            maxCapacityT <= '0'; -- Space is available
-        end if;
-    end if;
+process(clk,reset)
+begin 
+if (reset = '1') then
+r_reg <= 0;
+elsif (clk'event and clk = '1') then 
+r_reg <= r_next;
+end if;
 end process;
 
-maxCapacity <= maxCapacityT;
+sel <= x & y;
 
-end project_arch;
+process(sel)
+begin
+if(sel="10" and r_reg < max_occupancy) then
+r_next <= r_reg + 1;
+elsif(sel="01" and r_reg > 0) then
+r_next <= r_reg - 1;
+end if;
+end process;
+
+r <= to_unsigned(r_reg,6);
+z <= '1' when r_reg = max_occupancy else
+'0';
+end arch;
