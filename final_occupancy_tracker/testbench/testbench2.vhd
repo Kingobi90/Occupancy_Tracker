@@ -12,7 +12,7 @@ architecture Behavioral of tb_occupancy_tracker is
     signal entry_sensor : STD_LOGIC := '0';
     signal exit_sensor : STD_LOGIC := '0';
     signal max_occupancy : UNSIGNED(7 downto 0) := to_unsigned(10, 8);
-    signal max_capacity : STD_LOGIC;
+    signal max_capacity : UNSIGNED(7 downto 0) := to_unsigned(50, 8);  -- Example maximum capacity
 
     constant CLK_PERIOD : time := 10 ns;
 
@@ -56,7 +56,7 @@ begin
         end loop;
 
         for i in 1 to 10 loop
-            if (max_capacity = '0') then
+            if (max_occupancy < max_capacity) then  -- Comparison with max_capacity
                 wait for 10 ns;
                 entry_sensor <= '1';
                 wait for 10 ns;
